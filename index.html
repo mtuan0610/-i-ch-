@@ -44,5 +44,30 @@
       <p>SĐT: 0975494635</p>
     </div>
   </div>
+<script>
+  document.getElementById("orderForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const form = e.target;
+
+    const data = {
+      ten: form.ten.value,
+      sdt: form.sdt.value,
+      diachi: form.diachi.value,
+      soluong: form.soluong.value,
+    };
+
+    fetch("https://script.google.com/macros/s/AKfycbyr2YO-uDC7nb2vIuaJY0Cl8oOj6X5iM6TBT0uWxNC0UxSoZ936bfXXyC65GphTxj2g/exec", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    .then((res) => res.text())
+    .then((msg) => {
+      alert("✅ Đặt hàng thành công!");
+      form.reset();
+    })
+    .catch((err) => alert("Lỗi khi gửi đơn: " + err));
+  });
+</script>
+
 </body>
 </html>
