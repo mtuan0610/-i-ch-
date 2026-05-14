@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GenZ POS</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body class="bg-gray-100">
+<div id="root"></div>
+
+<script type="text/babel">
+
+const { useState, useEffect } = React;
+
+function App() {
+
+  const [categories, setCategories] = useState(() => {
+    return JSON.parse(localStorage.getItem("categories")) || [
+      "Cà phê",
+      "Trà sữa"
+    ];
+  });
+
+  const [activeCategory, setActiveCategory] = useState("Cà phê");
+
+  const [products, setProducts] = useState(() => {
+    return JSON.parse(localStorage.getItem("products")) || [
+      {
+        id: 1,
+        name: "Cà phê sữa",
+        category: "Cà phê",
+        priceM: 25000,
+        priceL: 30000,
+        image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800"
+      },
+      {
+        id: 2,
+        name: "Trà sữa trân châu",
+        category: "Trà sữa",
+        priceM: 30000,
+        priceL: 35000,
+        image: "https://images.unsplash.com/photo-1558857563-b371033873b8?q=80&w=800"
+      }
+    ];
+  });
+
+  const [toppings, setToppings] = useState(() => {
+    return JSON.parse(localStorage.getItem("toppings")) || [
+      "Trân châu",
+      "Thạch",
+      "Kem cheese"
+    ];
+  });
+
+  const [cart, setCart] = useState([]);
+
+  const [newName, setNewName] = useState("");
+  const [newPriceM, setNewPriceM] = useState("");
+  const [newPriceL, setNewPriceL] = useState("");
+  const [newImage, setNewImage] = useState("");
+  const [newCategory, setNewCategory] = useState("Cà phê");
+  const [newTopping, setNewTopping] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem("categories", JSON.stringify(categories));
+  }, [categories]);
+
+  useEffect(() => {
+    localStorage.setItem("products", JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem("toppings", JSON.stringify(toppings));
+  }, [toppings]);
+
+  const addCategory = () => {
+    const name = prompt("Tên danh mục");
+
+    if (!name) return;
+
+    setCategories([...categories, name]);
+  };
+
+  const addProduct = () => {
+
+    if (!newName || !newPriceM || !newPriceL) {
+      alert("Nhập đầy đủ thông tin");
+      return;
+    }
+
+    const item = {
+      id: Date.now(),
+      name: newName,
+      category: newCategory,
+      priceM: Number(newPriceM),
+      priceL: Number(newPriceL),
+      image: newImage || "https://via.placeholder.com/300x200"
+    };
+
+    setProducts([...products, item]);
+
+    setNewName("");
+    setNewPriceM("");
+    setNewPriceL("");
+    setNewImage("");
+  };
+
+  const deleteProduct = (id) => {
+    setProducts(products.filter(item => item.id !== id));
+  };
+
+  const addTopping = () => {
+
+    if (!newTopping) return;
+
+    setToppings([...toppings, newTopping]);
+
+    setNewTopping("");
+  };
+
+  const removeTopping = (name) => {
+    setToppings(toppings.filter(top => top !== name));
+  };
+
+  const addToCart = (item, size, selectedToppings) => {
+
+    const basePrice =
+      size === "M"
+        ? item.priceM
+        : item.priceL;
+
+    const toppingPrice = selectedToppings.length * 5000;
+
+    const finalPrice = basePrice + toppingPrice;
+
+    const cartItem = {
+      cartId: Date.now() + Math.random(),
+      name: item.name,
+      size,
+      toppings: selectedToppings,
+      price: finalPrice,
+      qty: 1
+    };
+
+    setCart([...cart, cartItem]);
+  };
+
+  const updateQty = (cartId, type) => {
+
+    setCart(
+      cart
+        .map(item => {
+
+          if (item.cartId === cartId) {
+
+            const qty =
+              type === "plus"
+                ? item.qty + 1
+                : item.qty - 1;
+
+            return {
+              ...item,
+              qty
+            };
+          }
+
+          return item;
+        })
+        .filter(item => item.qty > 0)
+    );
+  };
+
+  const total = cart.reduce(
+    (sum, item) => sum + item.price * item.qty,
+    0
+  );
+
+  const printBill = () => {
+
+    const bill = document.getElementById("bill").innerHTML;
+
+    const win = window.open("", "", "width=400,height=700");
+
+    win.document.write(`
+      <html>
+      <head>
+        <title>Hóa đơn</title>
+      </head>
+
+      <body style="font-family:Arial;padding:20px;">
+        <h2>GenZ Coffee</h2>
+
+        ${bill}
+
+        <h2>Tổng: ${total.toLocaleString()}đ</h2>
+      </body>
+      </html>
+    `);
+
+    win.document.close();
+    win.print();
+  };
+
+  const filteredProducts = products.filter(
+    item => item.category === activeCategory
+  );
+
+  return (
+    <div className="min-h-screen flex">
+
+      {/* MENU */}
+      <div className="w-64 bg-white p-5 border-r">
+
+        <h1 className="text-4xl font-bold text-center mb-8">
+          GenZ POS
+        </h1>
+
+        <button
+          onClick={addCategory}
+          className="w-full bg-pink-400 text-white p-4 rounded-3xl text-xl mb-6"
+        >
+          + Thêm danh mục
+        </button>
+
+        <div className="space-y-4">
+
+          {categories.map(cat => (
+
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={
+                activeCategory === cat
+                  ? "w-full bg-pink-400 text-white p-4 rounded-3xl text-2xl"
+                  : "w-full bg-gray-200 p-4 rounded-3xl text-2xl"
+              }
+            >
+              {cat}
+            </button>
+
+          ))}
+
+        </div>
+
+      </div>
+
+      {/* CONTENT */}
+      <div className="flex-1 p-6 overflow-auto">
+
+        {/* ADD PRODUCT */}
+        <div className="bg-white rounded-3xl p-6 shadow mb-6">
+
+          <h2 className="text-3xl font-bold mb-6">
+            Thêm món
+          </h2>
+
+          <div className="grid grid-cols-5 gap-3 mb-4">
+
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Tên món"
+              className="border p-3 rounded-xl"
+            />
+
+            <input
+              value={newPriceM}
+              onChange={(e) => setNewPriceM(e.target.value)}
+              placeholder="Giá M"
+              type="number"
+              className="border p-3 rounded-xl"
+            />
+
+            <input
+              value={newPriceL}
+              onChange={(e) => setNewPriceL(e.target.value)}
+              placeholder="Giá L"
+              type="number"
+              className="border p-3 rounded-xl"
+            />
+
+            <input
+              value={newImage}
+              onChange={(e) => setNewImage(e.target.value)}
+              placeholder="Link ảnh"
+              className="border p-3 rounded-xl"
+            />
+
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="border p-3 rounded-xl"
+            >
+              {categories.map(cat => (
+                <option key={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+
+          </div>
+
+          <div className="flex gap-3 mb-5">
+
+            <button
+              onClick={addProduct}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl"
+            >
+              + Thêm món
+            </button>
+
+            <input
+              value={newTopping}
+              onChange={(e) => setNewTopping(e.target.value)}
+              placeholder="Tên topping"
+              className="border p-3 rounded-xl"
+            />
+
+            <button
+              onClick={addTopping}
+              className="bg-green-500 text-white px-6 py-3 rounded-xl"
+            >
+              + Thêm topping
+            </button>
+
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+
+            {toppings.map(top => (
+
+              <div
+                key={top}
+                className="bg-gray-100 px-3 py-2 rounded-xl flex items-center gap-2"
+              >
+
+                <span>{top}</span>
+
+                <button
+                  onClick={() => removeTopping(top)}
+                  className="bg-red-500 text-white w-5 h-5 rounded-full text-xs"
+                >
+                  ×
+                </button>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        </div>
+
+        {/* PRODUCTS */}
+        <div className="grid grid-cols-3 gap-5">
+
+          {filteredProducts.length === 0 && (
+
+            <div className="col-span-3 bg-white p-10 rounded-3xl text-center text-gray-500 shadow text-2xl">
+              Chưa có món trong danh mục này
+            </div>
+
+          )}
+
+          {filteredProducts.map(item => (
+
+            <ProductCard
+              key={item.id}
+              item={item}
+              toppings={toppings}
+              addToCart={addToCart}
+              deleteProduct={deleteProduct}
+            />
+
+          ))}
+
+        </div>
+
+      </div>
+
+      {/* BILL */}
+      <div className="w-96 bg-white border-l p-6">
+
+        <h2 className="text-4xl font-bold mb-6">
+          Hóa đơn
+        </h2>
+
+        <div id="bill">
+
+          {cart.map(item => (
+
+            <div
+              key={item.cartId}
+              className="border-b py-4"
+            >
+
+              <div className="flex justify-between mb-2">
+
+                <div>
+
+                  <h3 className="font-bold">
+                    {item.name}
+                  </h3>
+
+                  <p>Size: {item.size}</p>
+
+                  {item.toppings.length > 0 && (
+                    <p>
+                      Topping: {item.toppings.join(", ")}
+                    </p>
+                  )}
+
+                </div>
+
+                <div className="font-bold">
+                  {(item.price * item.qty).toLocaleString()}đ
+                </div>
+
+              </div>
+
+              <div className="flex gap-2">
+
+                <button
+                  onClick={() => updateQty(item.cartId, "minus")}
+                  className="bg-gray-200 w-8 h-8 rounded-lg"
+                >
+                  -
+                </button>
+
+                <div className="px-3 py-1">
+                  {item.qty}
+                </div>
+
+                <button
+                  onClick={() => updateQty(item.cartId, "plus")}
+                  className="bg-pink-400 text-white w-8 h-8 rounded-lg"
+                >
+                  +
+                </button>
+
+              </div>
+
+            </div>
+
+          ))}
+
+        </div>
+
+        <div className="text-3xl font-bold mt-6 mb-6">
+          Tổng: {total.toLocaleString()}đ
+        </div>
+
+        <button
+          onClick={printBill}
+          className="w-full bg-pink-400 text-white py-4 rounded-2xl text-xl"
+        >
+          🖨️ In hóa đơn
+        </button>
+
+      </div>
+
+    </div>
+  );
+}
+
+function ProductCard({
+  item,
+  toppings,
+  addToCart,
+  deleteProduct
+}) {
+
+  const [size, setSize] = useState("M");
+
+  const [selectedToppings, setSelectedToppings] = useState([]);
+
+  return (
+
+    <div className="bg-white rounded-3xl overflow-hidden shadow">
+
+      <img
+        src={item.image}
+        className="w-full h-52 object-cover"
+      />
+
+      <div className="p-5">
+
+        <h3 className="text-2xl font-bold mb-3">
+          {item.name}
+        </h3>
+
+        <p>
+          Size M: {item.priceM.toLocaleString()}đ
+        </p>
+
+        <p className="text-pink-500 font-bold mb-4">
+          Size L: {item.priceL.toLocaleString()}đ
+        </p>
+
+        <div className="flex gap-2 mb-4">
+
+          <button
+            onClick={() => setSize("M")}
+            className={
+              size === "M"
+                ? "bg-pink-400 text-white px-4 py-2 rounded-xl"
+                : "bg-gray-100 px-4 py-2 rounded-xl"
+            }
+          >
+            M
+          </button>
+
+          <button
+            onClick={() => setSize("L")}
+            className={
+              size === "L"
+                ? "bg-pink-400 text-white px-4 py-2 rounded-xl"
+                : "bg-gray-100 px-4 py-2 rounded-xl"
+            }
+          >
+            L
+          </button>
+
+        </div>
+
+        <div className="mb-4">
+
+          <p className="font-semibold mb-2">
+            Topping (+5k)
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+
+            {toppings.map(top => (
+
+              <button
+                key={top}
+                onClick={() => {
+
+                  if (selectedToppings.includes(top)) {
+
+                    setSelectedToppings(
+                      selectedToppings.filter(x => x !== top)
+                    );
+
+                  } else {
+
+                    setSelectedToppings([
+                      ...selectedToppings,
+                      top
+                    ]);
+
+                  }
+
+                }}
+                className={
+                  selectedToppings.includes(top)
+                    ? "bg-pink-400 text-white px-3 py-2 rounded-xl text-sm"
+                    : "bg-gray-100 px-3 py-2 rounded-xl text-sm"
+                }
+              >
+                {top}
+              </button>
+
+            ))}
+
+          </div>
+
+        </div>
+
+        <div className="flex gap-3">
+
+          <button
+            onClick={() =>
+              addToCart(
+                item,
+                size,
+                selectedToppings
+              )
+            }
+            className="flex-1 bg-blue-600 text-white py-3 rounded-xl"
+          >
+            + Thêm vào đơn
+          </button>
+
+          <button
+            onClick={() => deleteProduct(item.id)}
+            className="bg-red-500 text-white px-4 rounded-xl"
+          >
+            Xóa
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  );
+}
+
+ReactDOM.createRoot(
+  document.getElementById("root")
+).render(<App />);
+
+</script>
+</body>
+</html>
